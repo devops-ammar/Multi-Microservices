@@ -22,7 +22,6 @@ services:
     build: ./todo-backend/
     restart: unless-stopped
     depends_on: [mongo, redis]
-    env_file: ./todo-backend/.env
     networks:
       - todo-network
 
