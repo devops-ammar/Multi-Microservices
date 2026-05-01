@@ -40,6 +40,7 @@ jobs:
         uses: stackrox/kube-linter-action@v1.0.4
         with:
           directory: ./k8s/
+          config: ./k8s/kube-linter.yml  # to remove prod grad issues
 
       - name: Lint Helm
         run: helm lint ./todo-app-helm/
