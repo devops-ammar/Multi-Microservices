@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: todo-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: multi-services
+
+spec:
+  selector:
+      app: multi-services
+      type: frontend
+  ports:
+    - port: 80
+      targetPort: 80

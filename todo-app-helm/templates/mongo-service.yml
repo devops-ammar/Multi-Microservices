@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: todo-mongo
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: multi-services
+
+spec:
+  selector:
+    app: multi-services
+    type: database
+  ports:
+    - port: 27017
+      targetPort: 27017

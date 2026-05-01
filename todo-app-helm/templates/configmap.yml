@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: multi-services
+
+data:
+  redis-url: "redis://{{ .Values.redis.serviceName }}:6379"

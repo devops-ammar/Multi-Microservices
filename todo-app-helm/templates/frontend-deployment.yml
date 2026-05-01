@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: todo-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: multi-services
+    type: frontend
+
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: multi-services
+      type: frontend
+  template:
+    metadata:
+      labels:
+        app: multi-services
+        type: frontend
+    spec:
+      containers:
+        - name: todo-frontend
+          image: {{ .Values.frontend.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 80
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+            
+            # limits:
+            #   memory: "256Mi"
+            #   cpu: "500m"
+            # requests:
+            #   memory: "128Mi"
+            #   cpu: "100m"

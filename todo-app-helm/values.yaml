@@ -1,0 +1,42 @@
+namespace: todo-app
+
+backend:
+  image: todo-backend:latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+frontend:
+  image: todo-frontend:latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+mongodb:
+  username: admin
+  password: password
+  database: todo_db
+  # full connection URL (will be stored in a Secret)
+  url: "mongodb://admin:password@todo-mongo:27017/todo_db?authSource=admin"
+  replicas: 1
+  storage: 1Gi
+
+redis:
+  replicas: 1
+  storage: 1Gi
+  serviceName: todo-redis
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilization: 50

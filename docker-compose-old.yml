@@ -1,0 +1,54 @@
+services:
+  mongo:
+    image: mongo:8.2.5-noble
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+    networks:
+      - todo-network:
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:8.6-alpine
+    restart: unless-stopped
+    networks:
+      - todo-network:
+    volumes:
+      - redis-data:/data
+
+  backend:
+    build: ./todo-backend/
+    depends_on:
+      - mongo
+      - redis
+    env:
+      file: ./todo-backend/.env
+    networks:
+      - todo-network:
+
+  frontend:
+    build: ./todo-frontend/
+    depends_on: backend
+    networks:
+      - todo-network:
+
+  nginx:
+    image: nginx:alpine
+    depends_on: frontend
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - 80:80
+    networks:
+      - todo-network:
+
+networks:
+  todo-network:
+    driver: bridge
+
+volumes:
+  - mongo-data
+  - redis-data

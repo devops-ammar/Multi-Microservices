@@ -1,0 +1,96 @@
+name: Multi-Microservices-Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  Quality-Assurance:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ends: [backend, frontend]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6 #docs provide v6 is updated latest
+
+      - name: Setup Node js
+        uses: actions/setup-node@v6 #v6 according to docs
+        with:
+          node-version: 24 #latest lts version
+      - name: Lint Development Code
+        run: |
+          cd todo-${{ matrix.ends }}
+          npm install eslint
+          npx eslint . --ext .js,.ts,.jsx,.tsx || false # Stop on errs!
+
+      - name: Lint Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          dockerfile: ./todo-${{ matrix.ends }}/Dockerfile
+
+      - name: Lint Docker Compose
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Lint Kubernetes Manifests
+        uses: stackrox/kube-linter-action@v1.0.4
+        with:
+          directory: ./k8s/
+
+      - name: Lint Helm
+        run: helm lint ./todo-app-helm/
+
+  Build-and-Push:
+    needs: Quality-Assurance
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ends: [backend, frontend]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and Push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./todo-${{ matrix.ends }}/
+          push: true
+          build-args: ${{ matrix.ends == 'frontend' && 'VITE_BACKEND_URL=/api' || '' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/todo-${{ matrix.ends }}:latest
+            ghcr.io/${{ github.repository_owner }}/todo-${{ matrix.ends }}:${{ github.sha }}
+
+      - name: Scan Vulnerabilities Using Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "ghcr.io/${{ github.repository_owner }}/todo-${{ matrix.ends }}:${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+  Deployment:
+    needs: Build-and-Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Environment or Infra
+        run: echo "We need to checkout code, setup helm and terraform, deploy to k8s and aws."

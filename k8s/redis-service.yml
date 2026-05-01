@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: todo-redis
+  labels:
+    app: multi-services
+
+spec:
+  selector:
+    app: multi-services
+    type: cache
+  ports:
+    - port: 6379
+      targetPort: 6379

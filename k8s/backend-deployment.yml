@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: todo-backend
+  labels:
+    app: multi-services
+    type: backend
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multi-services
+      type: backend
+  template:
+    metadata:
+      labels:
+        app: multi-services
+        type: backend
+    spec:
+      containers:
+        - name: todo-backend
+          image: todo-backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["node", "bin/www"]
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MONGO_URL
+              value: "mongodb://admin:password@todo-mongo:27017/todos_db?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://todo-redis:6379"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 15
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            failureThreshold: 5
+            timeoutSeconds: 30
+            periodSeconds: 30
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"

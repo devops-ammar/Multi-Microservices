@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: todo-redis
+  labels:
+    app: multi-services
+    type: cache
+
+spec:
+  serviceName: "todo-redis-headless"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multi-services
+      type: cache
+  template:
+    metadata:
+      labels:
+        app: multi-services
+        type: cache
+    spec:
+      containers:
+        - name: todo-redis
+          image: redis:8.6-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
