@@ -24,7 +24,7 @@ RUN rm -rf ./*
 
 COPY --from=builder ./app/dist .
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl=8.9.1-r0
 
 HEALTHCHECK --retries=3 --timeout=5s --interval=30s --start-period=10s \
   CMD curl -f http://localhost/ || exit 1;
