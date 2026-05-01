@@ -9,7 +9,7 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 COPY package*.json ./
 
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
