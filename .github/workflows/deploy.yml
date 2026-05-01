@@ -24,8 +24,8 @@ jobs:
       - name: Lint Development Code
         run: |
           cd todo-${{ matrix.ends }}
-          npm install eslint
-          npx eslint . --ext .js,.ts,.jsx,.tsx || false # Stop on errs!
+          npm ci --legacy-peer-deps
+          npx eslint . || false # Stop on errs!
 
       - name: Lint Dockerfiles
         uses: hadolint/hadolint-action@v3.1.0
