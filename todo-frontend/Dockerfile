@@ -27,6 +27,9 @@ COPY --from=builder ./app/dist .
 # hadolint ignore=DL3018
 RUN apk add --no-cache curl
 
+# Upgrade system packages to fix vulnerabilities
+RUN apk upgrade --no-cache nghttp2-libs
+
 HEALTHCHECK --retries=3 --timeout=5s --interval=30s --start-period=10s \
   CMD curl -f http://localhost/ || exit 1;
 
