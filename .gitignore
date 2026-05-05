@@ -1,2 +1,14 @@
 redis_data
 mongo
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform variable files (may contain secrets)
+*.tfvars
+*.tfvars.json
+
+# Terraform working directory
+.terraform/

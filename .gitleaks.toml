@@ -1,0 +1,8 @@
+[allowlist]
+  description = "Terraform state files – excluded from Git and stored remotely in production"
+  paths = [
+    '''terraform\/local\/terraform\.tfstate''',
+    '''terraform\/local\/terraform\.tfstate\.backup''',
+    '''terraform\/aws\/terraform\.tfstate''',
+    '''terraform\/aws\/terraform\.tfstate\.backup''',
+  ]

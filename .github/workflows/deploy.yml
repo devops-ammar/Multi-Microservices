@@ -79,7 +79,7 @@ jobs:
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
   Build-and-Push:
-    needs: Quality-Assurance
+    needs: [Quality-Assurance, SonarQube-Analysis]
     runs-on: ubuntu-latest
     strategy:
       matrix:
