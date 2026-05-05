@@ -2,6 +2,15 @@ name: Multi-Microservices-Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Choose "deploy" or "destroy"'
+        required: true
+        default: "deploy"
+        type: choice
+        options:
+          - deploy
+          - destroy
   push:
     branches: [main, master]
   pull_request:
@@ -40,7 +49,7 @@ jobs:
         uses: stackrox/kube-linter-action@v1.0.4
         with:
           directory: ./k8s/
-          config: ./k8s/.kube-linter.yml  # to remove prod grad issues
+          config: ./k8s/.kube-linter.yml # to remove prod grad issues
 
       - name: Lint Helm
         run: helm lint ./todo-app-helm/
@@ -90,9 +99,68 @@ jobs:
           exit-code: "1"
           severity: "CRITICAL,HIGH"
           trivyignores: ./.trivyignore
-  Deployment:
+  Deploy-to-AWS:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy'
     needs: Build-and-Push
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Environment or Infra
-        run: echo "We need to checkout code, setup helm and terraform, deploy to k8s and aws."
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10"
+
+      - name: Terraform Init & Apply (Create infrastructure)
+        run: |
+          cd terraform/aws
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name eks-cluster
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy application with Helm
+        run: |
+          helm upgrade --install todo-app ./todo-app-helm \
+            --namespace todo-app \
+            --create-namespace \
+            --set backend.image=ghcr.io/${{ github.repository_owner }}/todo-backend:${{ github.sha }} \
+            --set frontend.image=ghcr.io/${{ github.repository_owner }}/todo-frontend:${{ github.sha }}
+
+  Destroy-AWS:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    needs: Build-and-Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10"
+
+      - name: Terraform Destroy
+        run: |
+          cd terraform/aws
+          terraform init
+          terraform destroy -auto-approve

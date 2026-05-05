@@ -21,6 +21,13 @@ spec:
         app: multi-services
         type: database
     spec:
+      initContainers:
+        - name: clean-data
+          image: busybox:1.36
+          command: ["sh", "-c", "rm -rf /data/db/*"]
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
       containers:
         - name: todo-mongo
           image: mongo:8.2.5-noble
