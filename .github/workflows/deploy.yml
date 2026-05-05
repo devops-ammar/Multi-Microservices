@@ -17,7 +17,18 @@ on:
     branches: [main, master]
 
 jobs:
+  GitLeaks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Mandatory for full Git history scan
+      - name: Run GitLeaks Secret Scanner
+        uses: gacts/gitleaks@v1
+
   Quality-Assurance:
+    needs: GitLeaks
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -53,6 +64,19 @@ jobs:
 
       - name: Lint Helm
         run: helm lint ./todo-app-helm/
+
+  SonarQube-Analysis:
+    needs: Quality-Assurance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
   Build-and-Push:
     needs: Quality-Assurance
@@ -99,6 +123,7 @@ jobs:
           exit-code: "1"
           severity: "CRITICAL,HIGH"
           trivyignores: ./.trivyignore
+
   Deploy-to-AWS:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy'
     needs: Build-and-Push
